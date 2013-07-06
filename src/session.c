@@ -87,7 +87,7 @@ int restore_session()
 			answer = getc(stdin);
 			free(bssid);
 		}
-	
+
 		if(answer == 'y' || answer == 'Y' || answer == '\n')
 		{
 			if((fp = fopen(file, "r")))
@@ -97,13 +97,13 @@ int restore_session()
 				{
 					set_p1_index(atoi(line));
 					memset((char *) &line, 0, MAX_LINE_SIZE);
-	
+
 					/* Get the key2 index value */
 					if(fgets((char *) &line, MAX_LINE_SIZE, fp) != NULL)
 					{
 						set_p2_index(atoi(line));
 						memset((char *) &line, 0, MAX_LINE_SIZE);
-				
+
 						/* Get the key status value */
 						if(fgets((char *) &line, MAX_LINE_SIZE, fp) != NULL)
 						{
@@ -139,7 +139,7 @@ int restore_session()
 						}
 					}
 				}
-		
+
 				fclose(fp);
 			}
 			else
@@ -149,12 +149,8 @@ int restore_session()
 		}
 	}
 
-	if(!ret_val)
+	if(ret_val)
 	{
-		set_p1_index(0);
-		set_p2_index(0);
-		set_key_status(KEY1_WIP);
-	} else {
 		cprintf(INFO, "[+] Restored previous session\n");
 	}
 
@@ -166,11 +162,11 @@ int save_session()
 {
 	unsigned char *bssid = NULL;
 	char *wpa_key = NULL, *essid = NULL, *pretty_bssid = NULL;
-        char file_name[FILENAME_MAX] = { 0 };
-        char line[MAX_LINE_SIZE] = { 0 };
-        FILE *fp = NULL;
+	char file_name[FILENAME_MAX] = { 0 };
+	char line[MAX_LINE_SIZE] = { 0 };
+	FILE *fp = NULL;
 	size_t write_size = 0;
-        int attempts = 0, ret_val = 0, i = 0;
+	int attempts = 0, ret_val = 0, i = 0;
 	struct wps_data *wps = NULL;
 
 	wps = get_wps();
@@ -182,7 +178,7 @@ int save_session()
 		wpa_key = wps->key;
 		essid = wps->essid;
 	}
-	
+
 	if(!bssid || !pretty_bssid)
 	{
 		cprintf(CRITICAL, "[X] ERROR: Failed to save session data (memory error).\n");
@@ -205,7 +201,7 @@ int save_session()
 			 */
 			if(configuration_directory_exists())
 			{
-        			snprintf((char *) &file_name, FILENAME_MAX, "%s/%s.%s", CONF_DIR, bssid, CONF_EXT);
+				snprintf((char *) &file_name, FILENAME_MAX, "%s/%s.%s", CONF_DIR, bssid, CONF_EXT);
 			}
 			else
 			{
@@ -232,9 +228,9 @@ int save_session()
 					if(fwrite((char *) &line, 1, write_size, fp) == write_size)
 					{
 						memset((char *) &line, 0, MAX_LINE_SIZE);
-        		                	snprintf((char *) &line, MAX_LINE_SIZE, "%d\n", get_key_status());
-        		                	write_size = strlen((char *) &line);
-	
+						snprintf((char *) &line, MAX_LINE_SIZE, "%d\n", get_key_status());
+						write_size = strlen((char *) &line);
+
 						/* Save key status value */
 						if(fwrite((char *) &line, 1, write_size, fp) == write_size)
 						{
@@ -281,7 +277,7 @@ int save_session()
 						}
 					}
 				}
-				
+
 				fclose(fp);
 			}
 		}
@@ -289,7 +285,7 @@ int save_session()
 		{
 			cprintf(VERBOSE, "[+] Nothing done, nothing to save.\n");
 		}
-		
+
 		free(bssid);
 		free(pretty_bssid);
 	}

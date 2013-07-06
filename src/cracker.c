@@ -33,13 +33,15 @@
 
 #include "cracker.h"
 
+time_t last_display = 0;
+int last_attempts = 0;
+
 /* Brute force all possible WPS pins for a given access point */
 void crack()
 {
 	unsigned char *bssid = NULL;
 	char *pin = NULL;
 	int fail_count = 0, loop_count = 0, sleep_count = 0, assoc_fail_count = 0;
-	float pin_count = 0;
 	time_t start_time = 0;
 	enum wps_result result = 0;
 
@@ -77,7 +79,7 @@ void crack()
 		cprintf(INFO, "[+] Waiting for beacon from %s\n", bssid);
 		read_ap_beacon();
 		process_auto_options();
-	
+
 		/* I'm fairly certian there's a reason I put this in twice. Can't remember what it was now though... */	
 		if(get_max_pin_attempts() == -1)
 		{
@@ -86,19 +88,19 @@ void crack()
 		}
 
 		/* This initial association is just to make sure we can successfully associate */
-                while(!reassociate())
-                {
+		while(!reassociate())
+		{
 			if(assoc_fail_count == MAX_ASSOC_FAILURES)
 			{
 				assoc_fail_count = 0;
-	                	cprintf(CRITICAL, "[!] WARNING: Failed to associate with %s (ESSID: %s)\n", bssid, get_ssid());
+				cprintf(CRITICAL, "[!] WARNING: Failed to associate with %s (ESSID: %s)\n", bssid, get_ssid());
 			}
 			else
 			{
 				assoc_fail_count++;
 			}
-                }
-                cprintf(INFO, "[+] Associated with %s (ESSID: %s)\n", bssid, get_ssid());
+		}
+		cprintf(INFO, "[+] Associated with %s (ESSID: %s)\n", bssid, get_ssid());
 
 		/* Used to calculate pin attempt rates */
 		start_time = time(NULL);
@@ -116,6 +118,8 @@ void crack()
 		{
 			set_key_status(KEY2_WIP);
 		}
+
+		cprintf(INFO, "[+] Starting Cracking Session. Pin count: %i, Max pin attempts: %i\n", get_pin_count(), get_max_pin_attempts());
 
 		/* Main cracking loop */
 		for(loop_count=0, sleep_count=0; get_key_status() != KEY_DONE; loop_count++, sleep_count++)
@@ -139,11 +143,11 @@ void crack()
 			 * Verify that the AP is not locked before attempting the next pin.
 			 */
 			while(get_ignore_locks() == 0 && is_wps_locked())
-                        {
-                                cprintf(WARNING, "[!] WARNING: Detected AP rate limiting, waiting %d seconds before re-checking\n", get_lock_delay());
+			{
+				cprintf(WARNING, "[!] WARNING: Detected AP rate limiting, waiting %d seconds before re-checking\n", get_lock_delay());
 				pcap_sleep(get_lock_delay());
-				
-                        }
+
+			}
 
 			/* Initialize wps structure */
 			set_wps(initialize_wps_data());
@@ -162,7 +166,7 @@ void crack()
 			}
 			else
 			{
-				cprintf(WARNING, "[+] Trying pin %s\n", pin);
+				cprintf(WARNING, "[+] Trying pin %s.\n", pin);
 			}
 
 			/* 
@@ -171,7 +175,7 @@ void crack()
 			 */
 			assoc_fail_count = 0;
 			while(!reassociate())
-                	{
+			{
 				if(assoc_fail_count == MAX_ASSOC_FAILURES)
 				{
 					assoc_fail_count = 0;
@@ -181,8 +185,8 @@ void crack()
 				{
 					assoc_fail_count++;
 				}
-                	}
-			
+			}
+
 
 			/* 
 			 * Enter receive loop. This will block until a receive timeout occurs or a
@@ -199,15 +203,15 @@ void crack()
 				 */
 				case KEY_REJECTED:
 					fail_count = 0;
-					pin_count++;
 					advance_pin_count();
+					cprintf(WARNING, "[+] Pin count advanced: %i. Max pin attempts: %i\n", get_pin_count(), get_max_pin_attempts());
 					break;
-				/* Got it!! */
+					/* Got it!! */
 				case KEY_ACCEPTED:
 					break;
-				/* Unexpected timeout or EAP failure...try this pin again */
+					/* Unexpected timeout or EAP failure...try this pin again */
 				default:
-					cprintf(VERBOSE, "[!] WPS transaction failed (code: 0x%.2X), re-trying last pin\n", result);
+					cprintf(WARNING, "[!] WPS transaction failed (code: 0x%.2X), re-trying last pin\n", result);
 					fail_count++;
 					break;
 			}
@@ -224,7 +228,7 @@ void crack()
 			if(loop_count == DISPLAY_PIN_COUNT)
 			{
 				save_session();
-				display_status(pin_count, start_time);
+				display_status(start_time);
 				loop_count = 0;
 			}
 
@@ -248,14 +252,22 @@ void crack()
 
 			/* If we've hit our max number of pin attempts, quit */
 			if((get_max_pin_attempts() > 0) && 
-			   (pin_count == get_max_pin_attempts()))
+					(get_pin_count() == get_max_pin_attempts()))
 			{
-				cprintf(VERBOSE, "[+] Quitting after %d crack attempts\n", get_max_pin_attempts());
-				break;
+				if(get_exhaustive()){
+					cprintf(WARNING, "[+] Quitting after %d crack attempts\n", get_max_pin_attempts());
+					break;
+				}
+				else
+				{
+					cprintf(WARNING, "[+] Checksum mode was not successful. Starting exhaustive attack\n");
+					set_exhaustive(1);
+					set_p2_index(0);
+				}
 			}
 		}
 
-                if(bssid) free(bssid);
+		if(bssid) free(bssid);
 		if(get_handle())
 		{
 			pcap_close(get_handle());
@@ -285,14 +297,27 @@ void advance_pin_count()
 	}
 }
 
+int get_pin_count()
+{
+	int pin_count = 0;
+	if(get_key_status() == KEY1_WIP)
+	{
+		pin_count = get_p1_index() + get_p2_index();
+	} 
+	else if(get_key_status() == KEY2_WIP)
+	{
+		pin_count = P1_SIZE + get_p2_index();
+	}
+	return pin_count;
+}
+
 /* Displays the status and rate of cracking */
-void display_status(float pin_count, time_t start_time)
+void display_status(time_t start_time)
 {
 	float percentage = 0;
-	int attempts = 0, average = 0;
-	time_t now = 0, diff = 0;
-	struct tm *tm_p = NULL;
-        char time_s[256] = { 0 };
+	int attempts = 0;
+	time_t now = 0, diff = 0, expected = 0;
+	int days = 0, hours = 0, minutes = 0, seconds = 0;
 
 	if(get_key_status() == KEY1_WIP)
 	{
@@ -308,34 +333,42 @@ void display_status(float pin_count, time_t start_time)
 	}
 	else if(get_key_status() == KEY_DONE)
 	{
-		attempts = P1_SIZE + P2_SIZE;
+		attempts = get_max_pin_attempts();
 	}
 
-	percentage = (float) (((float) attempts / (P1_SIZE + P2_SIZE)) * 100);
-	
+	percentage = (float) (((float) attempts / (get_max_pin_attempts())) * 100);
+
 	now = time(NULL);
-	diff = now - start_time;
+	diff = (int) (now - start_time);
 
-        tm_p = localtime(&now);
-	if(tm_p)
+	if(diff > 0)
 	{
-        	strftime(time_s, sizeof(time_s), TIME_FORMAT, tm_p);
-	}
-	else
-	{
-		perror("localtime");
-	}
-
-	if(pin_count > 0)
-	{
-		average =  (int) (diff / pin_count);
-	}
-	else
-	{
-		average = 0;
+		seconds = diff % 60;
+		int t_minutes = diff / 60;
+		minutes = t_minutes % 60;
+		int t_hours = t_minutes / 60;
+		hours = t_hours % 24;
+		days = t_hours / 24;
 	}
 
-	cprintf(INFO, "[+] %.2f%% complete @ %s (%d seconds/pin)\n", percentage, time_s, average);
+	
+	cprintf(INFO, "[+] %.2f%% complete. Elapsed time: %id%ih%im%is.\n", percentage, days, hours, minutes, seconds);
+	if(last_display)
+	{
+		expected = ((now - last_display)/(attempts-last_attempts))*(get_max_pin_attempts()-attempts);
+		if(expected > 0)
+		{
+			seconds = expected % 60;
+			int t_minutes = expected / 60;
+			minutes = t_minutes % 60;
+			int t_hours = t_minutes / 60;
+			hours = t_hours % 24;
+			days = t_hours / 24;
+		}
+		cprintf(INFO, "[+] Estimated Remaining time: %id%ih%im%is\n", days, hours, minutes, seconds);
+	}
+	last_display = now;
+	last_attempts = attempts;
 
 	return;
 }
