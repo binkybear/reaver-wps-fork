@@ -199,7 +199,6 @@ void crack()
                  */
                 case KEY_REJECTED:
                     fail_count = 0;
-                    pin_count++;
                     advance_pin_count();
                     break;
                     /* Got it!! */
@@ -248,7 +247,7 @@ void crack()
 
             /* If we've hit our max number of pin attempts, quit */
             if((get_max_pin_attempts() > 0) && 
-                    (pin_count == get_max_pin_attempts()))
+                    (get_pin_count() == get_max_pin_attempts()))
             {
                 cprintf(VERBOSE, "[+] Quitting after %d crack attempts\n", get_max_pin_attempts());
                 break;
@@ -283,6 +282,20 @@ void advance_pin_count()
     {
         set_p2_index(get_p2_index() + 1);
     }
+}
+
+int get_pin_count()
+{
+    int pin_count = 0;
+    if(get_key_status() == KEY1_WIP)
+    {
+        pin_count = get_p1_index() + get_p2_index();
+    } 
+    else if(get_key_status() == KEY2_WIP)
+    {
+        pin_count = P1_SIZE + get_p2_index();
+    }
+    return pin_count;
 }
 
 /* Displays the status and rate of cracking */
