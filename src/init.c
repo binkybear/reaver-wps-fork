@@ -39,94 +39,94 @@
  */
 struct wps_data *initialize_wps_data()
 {
-	struct wps_config *wpsconf = NULL;
-	struct wps_data *wps = NULL;
-	struct wps_registrar_config *reg_conf = NULL;
-	
-	wpsconf = malloc(sizeof(struct wps_config));
-	if(!wpsconf)
-	{
-		perror("malloc");
-		goto end;
-	}
-	memset(wpsconf, 0, sizeof(struct wps_config));
+    struct wps_config *wpsconf = NULL;
+    struct wps_data *wps = NULL;
+    struct wps_registrar_config *reg_conf = NULL;
 
-	reg_conf = malloc(sizeof(struct wps_registrar_config));
-	if(!reg_conf)
-	{
-		perror("malloc");
-		goto end;
-	}
-	memset(reg_conf, 0, sizeof(struct wps_registrar_config));
+    wpsconf = malloc(sizeof(struct wps_config));
+    if(!wpsconf)
+    {
+        perror("malloc");
+        goto end;
+    }
+    memset(wpsconf, 0, sizeof(struct wps_config));
 
-	/* Configure ourselves as a registrar */
-        wpsconf->registrar = 1;
+    reg_conf = malloc(sizeof(struct wps_registrar_config));
+    if(!reg_conf)
+    {
+        perror("malloc");
+        goto end;
+    }
+    memset(reg_conf, 0, sizeof(struct wps_registrar_config));
 
-	/* Tell the AP to not generate a random PSK */
-	reg_conf->disable_auto_conf = 1;
+    /* Configure ourselves as a registrar */
+    wpsconf->registrar = 1;
 
-	/* Allocate space for the wps_context structure member */
-	wpsconf->wps = malloc(sizeof(struct wps_context));
-	if(!wpsconf->wps)
-	{
-		perror("malloc");
-		goto end;
-	}
-	memset(wpsconf->wps, 0, sizeof(struct wps_context));
+    /* Tell the AP to not generate a random PSK */
+    reg_conf->disable_auto_conf = 1;
 
-	/* 
-	 * Initialize the registrar sub-structure. This is necessary when calling
-	 * wpa_supplicant functions to build registrar response payloads.
-	 */
-	wpsconf->wps->registrar = wps_registrar_init(wpsconf->wps, (const struct wps_registrar_config *) reg_conf);
-	if(wpsconf->wps->registrar == NULL)
-	{
-		cprintf(CRITICAL, "[X] ERROR: Failed to initialize registrar structure!\n");
-	}
+    /* Allocate space for the wps_context structure member */
+    wpsconf->wps = malloc(sizeof(struct wps_context));
+    if(!wpsconf->wps)
+    {
+        perror("malloc");
+        goto end;
+    }
+    memset(wpsconf->wps, 0, sizeof(struct wps_context));
 
-	/* 
-	 * In registrar mode, only the uuid wps_context member needs to be 
-	 * populated in order to call wps_init(). If acting as an enrollee,
-	 * the wps_device_data sub-structure must also be populated.
-	 */
-	if(os_get_random(wpsconf->wps->uuid, UUID_LEN) == -1)
-	{
-		memcpy(wpsconf->wps->uuid, DEFAULT_UUID, UUID_LEN);
-	}
+    /* 
+     * Initialize the registrar sub-structure. This is necessary when calling
+     * wpa_supplicant functions to build registrar response payloads.
+     */
+    wpsconf->wps->registrar = wps_registrar_init(wpsconf->wps, (const struct wps_registrar_config *) reg_conf);
+    if(wpsconf->wps->registrar == NULL)
+    {
+        cprintf(CRITICAL, "[X] ERROR: Failed to initialize registrar structure!\n");
+    }
 
-	wps = wps_init(wpsconf);
-	if(wps)
-	{
-		/* Report that we are a Windows 7 registrar, if --win7 was specified on the command line */
-		if(wps->wps && get_win7_compat())
-		{
-			wps->wps->dev.device_name = WPS_DEVICE_NAME;
-			wps->wps->dev.manufacturer = WPS_MANUFACTURER;
-			wps->wps->dev.model_name = WPS_MODEL_NAME;
-			wps->wps->dev.model_number = WPS_MODEL_NUMBER;
-			memcpy(wps->wps->dev.pri_dev_type, WPS_DEVICE_TYPE, WPS_DEV_TYPE_LEN);
-			memcpy((void *) &wps->wps->dev.os_version, WPS_OS_VERSION, 4);
-			wps->wps->dev.rf_bands = WPS_RF_BANDS;
-		}
-	}
+    /* 
+     * In registrar mode, only the uuid wps_context member needs to be 
+     * populated in order to call wps_init(). If acting as an enrollee,
+     * the wps_device_data sub-structure must also be populated.
+     */
+    if(os_get_random(wpsconf->wps->uuid, UUID_LEN) == -1)
+    {
+        memcpy(wpsconf->wps->uuid, DEFAULT_UUID, UUID_LEN);
+    }
+
+    wps = wps_init(wpsconf);
+    if(wps)
+    {
+        /* Report that we are a Windows 7 registrar, if --win7 was specified on the command line */
+        if(wps->wps && get_win7_compat())
+        {
+            wps->wps->dev.device_name = WPS_DEVICE_NAME;
+            wps->wps->dev.manufacturer = WPS_MANUFACTURER;
+            wps->wps->dev.model_name = WPS_MODEL_NAME;
+            wps->wps->dev.model_number = WPS_MODEL_NUMBER;
+            memcpy(wps->wps->dev.pri_dev_type, WPS_DEVICE_TYPE, WPS_DEV_TYPE_LEN);
+            memcpy((void *) &wps->wps->dev.os_version, WPS_OS_VERSION, 4);
+            wps->wps->dev.rf_bands = WPS_RF_BANDS;
+        }
+    }
 end:
-	if(wpsconf) free(wpsconf);
-	if(reg_conf) free(reg_conf);
-	return wps;
+    if(wpsconf) free(wpsconf);
+    if(reg_conf) free(reg_conf);
+    return wps;
 }
 
 /* Initializes pcap capture settings and returns a pcap handle on success, NULL on error */
 pcap_t *capture_init(char *capture_source)
 {
-	pcap_t *handle = NULL;
-	char errbuf[PCAP_ERRBUF_SIZE] = { 0 };
-	
-	handle = pcap_open_live(capture_source, BUFSIZ, 1, 0, errbuf);
-	if(!handle)
-	{
-		handle = pcap_open_offline(capture_source, errbuf);
-	}
+    pcap_t *handle = NULL;
+    char errbuf[PCAP_ERRBUF_SIZE] = { 0 };
 
-	return handle;
+    handle = pcap_open_live(capture_source, BUFSIZ, 1, 0, errbuf);
+    if(!handle)
+    {
+        handle = pcap_open_offline(capture_source, errbuf);
+    }
+
+    return handle;
 }
 
