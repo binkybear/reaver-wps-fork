@@ -254,8 +254,16 @@ void crack()
             if((get_max_pin_attempts() > 0) && 
                     (get_pin_count() == get_max_pin_attempts()))
             {
-                cprintf(VERBOSE, "[+] Quitting after %d crack attempts\n", get_max_pin_attempts());
-                break;
+                if(get_exhaustive()){
+                    cprintf(WARNING, "[+] Quitting after %d crack attempts\n", get_max_pin_attempts());
+                    break;
+                }
+                else
+                {
+                    cprintf(WARNING, "[+] Checksum mode was not successful. Starting exhaustive attack\n");
+                    set_exhaustive(1);
+                    set_p2_index(0);
+                }
             }
         }
 
