@@ -60,9 +60,9 @@ enum wps_result do_wps_exchange()
 	 *	o We hit an unrecoverable receive timeout
 	 */
 	while((get_key_status() != KEY_DONE) && 
-			!terminated &&
-			!got_nack && 
-			!premature_timeout)
+	      !terminated &&
+	      !got_nack && 
+              !premature_timeout)
 	{
 		tx_type = 0;
 
@@ -79,7 +79,7 @@ enum wps_result do_wps_exchange()
 
 		packet_type = process_packet(packet, &header);
 		memset((void *) packet, 0, header.len);
-
+	
 		switch(packet_type)
 		{
 			case IDENTITY_REQUEST:
@@ -113,15 +113,15 @@ enum wps_result do_wps_exchange()
 					terminated = 1;
 				}
 				break;
-			case M5:
+                        case M5:
 				cprintf(VERBOSE, "[+] Received M5 message\n");
-				if(get_key_status() == KEY1_WIP)
+                                if(get_key_status() == KEY1_WIP)
 				{
 					set_key_status(KEY2_WIP);
 				}
 				if(m4_sent && !m6_sent)
 				{
-					tx_type = SEND_M6;
+                                	tx_type = SEND_M6;
 					m6_sent = 1;
 				}
 				else if(get_oo_send_nack())
@@ -129,7 +129,7 @@ enum wps_result do_wps_exchange()
 					tx_type = SEND_WSC_NACK;
 					terminated = 1;
 				}
-				break;
+                                break;
 			case M7:
 				cprintf(VERBOSE, "[+] Received M7 message\n");
 				/* Fall through */
@@ -218,7 +218,7 @@ enum wps_result do_wps_exchange()
 		{
 			/* The AP is properly sending WSC_NACKs, so don't treat future timeouts as pin failures. */
 			set_timeout_is_nack(0);
-
+			
 			ret_val = KEY_REJECTED;
 		}
 		else
@@ -235,7 +235,7 @@ enum wps_result do_wps_exchange()
 		 * Only treat the timeout as a NACK if this feature is enabled.
 		 */
 		if(get_timeout_is_nack() &&
-				(last_msg == M3 || last_msg == M5))
+		  (last_msg == M3 || last_msg == M5))
 		{
 			ret_val = KEY_REJECTED;
 		}
@@ -262,18 +262,18 @@ enum wps_result do_wps_exchange()
 	 * Always completely terminate the WPS session, else some WPS state machines may
 	 * get stuck in their current state and won't accept new WPS registrar requests
 	 * until rebooted.
-	 *
+ 	 *
 	 * Stop the receive timer that is started by the termination transmission.
 	 */
 	send_wsc_nack();
 	stop_timer();
-
+	
 	if(get_eap_terminate() || ret_val == EAP_FAIL)
 	{
 		send_termination();
 		stop_timer();
 	}
-
+	
 	return ret_val;
 }
 
@@ -313,37 +313,36 @@ enum wps_type process_packet(const u_char *packet, struct pcap_pkthdr *header)
 	{
 		/* Is this a data packet sent to our MAC address? */
 		if(frame_header->fc.type == DATA_FRAME && 
-				frame_header->fc.sub_type == SUBTYPE_DATA && 
-				(memcmp(frame_header->addr1, get_mac(), MAC_ADDR_LEN) == 0)) 
+			frame_header->fc.sub_type == SUBTYPE_DATA && 
+			(memcmp(frame_header->addr1, get_mac(), MAC_ADDR_LEN) == 0)) 
 		{
 			llc = (struct llc_header *) (packet +
-					rt_header->len +
-					sizeof(struct dot11_frame_header)
-					);
+							rt_header->len +
+							sizeof(struct dot11_frame_header)
+			);
 
 			/* All packets in our exchanges will be 802.1x */
 			if(llc->type == DOT1X_AUTHENTICATION)
 			{
 				dot1x = (struct dot1X_header *) (packet +
-						rt_header->len +
-						sizeof(struct dot11_frame_header) +
-						sizeof(struct llc_header)
-						);
+								rt_header->len +
+								sizeof(struct dot11_frame_header) +
+								sizeof(struct llc_header)
+				);
 
 				/* All packets in our exchanges will be EAP packets */
 				if(dot1x->type == DOT1X_EAP_PACKET && (header->len >= EAP_PACKET_SIZE))
 				{
 					eap = (struct eap_header *) (packet +
-							rt_header->len +
-							sizeof(struct dot11_frame_header) +
-							sizeof(struct llc_header) +
-							sizeof(struct dot1X_header)
-							);
+									rt_header->len +
+									sizeof(struct dot11_frame_header) +
+									sizeof(struct llc_header) +
+									sizeof(struct dot1X_header)
+					);
 
 					/* EAP session termination. Break and move on. */
 					if(eap->code == EAP_FAILURE)
 					{
-						cprintf(VERBOSE, "[!] EAP_FAILURE: TERMINATE\n");
 						type = TERMINATE;
 					} 
 					/* If we've received an EAP request and then this should be a WPS message */
@@ -367,28 +366,28 @@ enum wps_type process_packet(const u_char *packet, struct pcap_pkthdr *header)
 						else if((eap->type == EAP_EXPANDED) && (header->len > WFA_PACKET_SIZE))
 						{
 							wfa = (struct wfa_expanded_header *) (packet +
-									rt_header->len +
-									sizeof(struct dot11_frame_header) +
-									sizeof(struct llc_header) +
-									sizeof(struct dot1X_header) +
-									sizeof(struct eap_header)
-									);
-
+											rt_header->len +
+											sizeof(struct dot11_frame_header) +
+											sizeof(struct llc_header) +
+											sizeof(struct dot1X_header) +
+											sizeof(struct eap_header)
+							);
+						
 							/* Verify that this is a WPS message */
 							if(wfa->type == SIMPLE_CONFIG)
 							{
 								wps_msg_len = 	(size_t) ntohs(eap->len) - 
-									sizeof(struct eap_header) - 
-									sizeof(struct wfa_expanded_header);
+										sizeof(struct eap_header) - 
+										sizeof(struct wfa_expanded_header);
 
 								wps_msg = (const void *) (packet +
-										rt_header->len +
-										sizeof(struct dot11_frame_header) +
-										sizeof(struct llc_header) +
-										sizeof(struct dot1X_header) +
-										sizeof(struct eap_header) +
-										sizeof(struct wfa_expanded_header)
-										);
+											rt_header->len +
+                                                                       	                sizeof(struct dot11_frame_header) +
+                                                                               	        sizeof(struct llc_header) +
+                                                                                       	sizeof(struct dot1X_header) +
+                                                       	             	                sizeof(struct eap_header) +
+											sizeof(struct wfa_expanded_header)
+								);
 
 								/* Save the current WPS state. This way if we get a NACK message, we can 
 								 * determine what state we were in when the NACK arrived.
@@ -417,8 +416,8 @@ enum wps_type process_wps_message(const void *data, size_t data_size)
 	enum wps_type type = UNKNOWN;
 	struct wps_data *wps = get_wps();
 	unsigned char *element_data = NULL;
-	struct wfa_element_header element = { 0 };
-	int i = 0, header_size = sizeof(struct wfa_element_header);
+        struct wfa_element_header element = { 0 };
+        int i = 0, header_size = sizeof(struct wfa_element_header);
 
 	/* Shove data into a wpabuf structure for processing */
 	msg = wpabuf_alloc_copy(data, data_size);
@@ -427,37 +426,37 @@ enum wps_type process_wps_message(const void *data, size_t data_size)
 		/* Process the incoming message */
 		wps_registrar_process_msg(wps, get_opcode(), msg);
 		wpabuf_free((struct wpabuf *) msg);
-
+	
 		/* Loop through until we hit the end of the data buffer */
-		for(i=0; i<data_size; i+=header_size)
-		{
-			element_data = NULL;
-			memset((void *) &element, 0, header_size);
+                for(i=0; i<data_size; i+=header_size)
+                {
+                        element_data = NULL;
+                        memset((void *) &element, 0, header_size);
 
-			/* Get the element header data */
-			memcpy((void *) &element, (data + i), header_size);
-			element.type = htons(element.type);
-			element.length = htons(element.length);
+                        /* Get the element header data */
+                        memcpy((void *) &element, (data + i), header_size);
+                        element.type = htons(element.type);
+                        element.length = htons(element.length);
 
-			/* Make sure the element length does not exceed the remaining buffer size */
-			if(element.length <= (data_size - i - header_size))
-			{
-				element_data = (unsigned char *) (data + i + header_size);
+                        /* Make sure the element length does not exceed the remaining buffer size */
+                        if(element.length <= (data_size - i - header_size))
+                        {
+                                element_data = (unsigned char *) (data + i + header_size);
 
-				switch(element.type)
-				{
-					case MESSAGE_TYPE:
-						type = (uint8_t) element_data[0];
-						break;
-					default:
-						break;
-				}
-			}
+                                switch(element.type)
+                                {
+                                        case MESSAGE_TYPE:
+                                                type = (uint8_t) element_data[0];
+                                                break;
+                                        default:
+                                                break;
+                                }
+                        }
 
-			/* Offset must include element length(s) */
-			i += element.length;
-		}
-
+                        /* Offset must include element length(s) */
+                        i += element.length;
+                }
+	
 	}
 
 	return type;
@@ -474,7 +473,7 @@ int parse_nack(const void *data, size_t data_size)
 	int ret_val = 0;
 
 	/* Shove data into a wpabuf structure for processing */
-	msg = wpabuf_alloc_copy(data, data_size);
+        msg = wpabuf_alloc_copy(data, data_size);
 	if(msg)
 	{
 		if(wps_parse_msg(msg, &attr) >= 0)
@@ -484,7 +483,7 @@ int parse_nack(const void *data, size_t data_size)
 				ret_val = WPA_GET_BE16(attr.config_error);
 			}
 		}
-
+		
 		wpabuf_free((struct wpabuf *) msg);
 	}
 

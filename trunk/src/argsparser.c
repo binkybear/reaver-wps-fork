@@ -41,7 +41,7 @@ int process_arguments(int argc, char **argv)
 	int long_opt_index = 0;
 	char bssid[MAC_ADDR_LEN] = { 0 };
 	char mac[MAC_ADDR_LEN] = { 0 };
-	char *short_options = "b:e:m:i:t:d:c:T:x:r:g:l:o:p:s:C:1:2:aA5ELfnqvDShwXN";
+	char *short_options = "b:e:m:i:t:d:c:T:x:r:g:l:o:p:s:C:aA5ELfnqvDShwN";
 	struct option long_options[] = {
 		{ "interface", required_argument, NULL, 'i' },
 		{ "bssid", required_argument, NULL, 'b' },
@@ -59,8 +59,6 @@ int process_arguments(int argc, char **argv)
 		{ "out-file", required_argument, NULL, 'o' },
 		{ "pin", required_argument, NULL, 'p' },
 		{ "exec", required_argument, NULL, 'C' },
-		{ "p1-index", required_argument, NULL, '1' },
-		{ "p2-index", required_argument, NULL, '2' },
 		{ "no-associate", no_argument, NULL, 'A' },
 		{ "ignore-locks", no_argument, NULL, 'L' },
 		{ "no-nacks", no_argument, NULL, 'N' },
@@ -74,7 +72,6 @@ int process_arguments(int argc, char **argv)
 		{ "quiet", no_argument, NULL, 'q' },
 		{ "verbose", no_argument, NULL, 'v' },
 		{ "win7", no_argument, NULL, 'w' },
-		{ "exhaustive", no_argument, NULL, 'X' },
 		{ "help", no_argument, NULL, 'h' },
 		{ 0, 0, 0, 0 }
 	};
@@ -83,42 +80,42 @@ int process_arguments(int argc, char **argv)
 	optind = 0;
 
 	while((c = getopt_long(argc, argv, short_options, long_options, &long_opt_index)) != -1)
-	{
-		switch(c)
-		{
-			case 'i':
-				set_iface(optarg);
-				break;
-			case 'b':
-				str2mac((unsigned char *) optarg, (unsigned char *) &bssid);
-				set_bssid((unsigned char *) &bssid);
-				break;
-			case 'e':
-				set_ssid(optarg);
-				break;
-			case 'm':
-				str2mac((unsigned char *) optarg, (unsigned char *) &mac);
-				set_mac((unsigned char *) &mac);
-				break;
-			case 't':
-				set_rx_timeout(atoi(optarg));
-				break;
-			case 'T':
-				set_m57_timeout(strtof(optarg, NULL) * SEC_TO_US);
-				break;
-			case 'c':
+        {
+                switch(c)
+                {
+                        case 'i':
+                                set_iface(optarg);
+                                break;
+                        case 'b':
+                                str2mac((unsigned char *) optarg, (unsigned char *) &bssid);
+                                set_bssid((unsigned char *) &bssid);
+                                break;
+                        case 'e':
+                                set_ssid(optarg);
+                                break;
+                        case 'm':
+                                str2mac((unsigned char *) optarg, (unsigned char *) &mac);
+                                set_mac((unsigned char *) &mac);
+                                break;
+                        case 't':
+                                set_rx_timeout(atoi(optarg));
+                                break;
+                        case 'T':
+                                set_m57_timeout(strtof(optarg, NULL) * SEC_TO_US);
+                                break;
+                        case 'c':
 				channel = strtod(optarg, NULL);
-				set_fixed_channel(1);
-				break;
-			case '5':
-				set_wifi_band(AN_BAND);
-				break;
-			case 'd':
-				set_delay(atoi(optarg));
-				break;
-			case 'l':
-				set_lock_delay(atoi(optarg));
-				break;
+                                set_fixed_channel(1);
+                                break;
+                        case '5':
+                                set_wifi_band(AN_BAND);
+                                break;
+                        case 'd':
+                                set_delay(atoi(optarg));
+                                break;
+                        case 'l':
+                                set_lock_delay(atoi(optarg));
+                                break;
 			case 'p':
 				parse_static_pin(optarg);
 				break;
@@ -128,67 +125,58 @@ int process_arguments(int argc, char **argv)
 			case 'C':
 				set_exec_string(optarg);
 				break;
-			case '1':
-				set_p1_index(atoi(optarg));
-				break;
-			case '2':
-				set_p2_index(atoi(optarg));
-				break;
 			case 'A':
 				set_external_association(1);
 				break;
-			case 'L':
-				set_ignore_locks(1);
-				break;
+                        case 'L':
+                                set_ignore_locks(1);
+                                break;
 			case 'a':       
 				set_auto_detect_options(1); 
 				break;
 			case 'o':
 				set_log_file(fopen(optarg, "w"));
 				break;
-			case 'x':
-				set_fail_delay(atoi(optarg));
-				break;
-			case 'r':
-				parse_recurring_delay(optarg);
-				break;
-			case 'g':
-				set_max_pin_attempts(atoi(optarg));
-				break;
-			case 'D':
+                        case 'x':
+                                set_fail_delay(atoi(optarg));
+                                break;
+                        case 'r':
+                                parse_recurring_delay(optarg);
+                                break;
+                        case 'g':
+                                set_max_pin_attempts(atoi(optarg));
+                                break;
+                        case 'D':
 				daemonize();
 				break;
 			case 'E':
-				set_eap_terminate(1);
-				break;
+                                set_eap_terminate(1);
+                                break;
 			case 'S':
 				set_dh_small(1);
 				break;
-			case 'n':
-				set_timeout_is_nack(0);
-				break;
-			case 'f':
-				set_fixed_channel(1);
-				break;
-			case 'v':
-				set_debug(get_debug() + 1);
-				break;
-			case 'q':
-				set_debug(CRITICAL);
-				break;
+                        case 'n':
+                                set_timeout_is_nack(0);
+                                break;
+                        case 'f':
+                                set_fixed_channel(1);
+                                break;
+                        case 'v':
+                                set_debug(get_debug() + 1);
+                                break;
+                        case 'q':
+                                set_debug(CRITICAL);
+                                break;
 			case 'w':
 				set_win7_compat(1);
-				break;
-			case 'X':
-				set_exhaustive(1);
 				break;
 			case 'N':
 				set_oo_send_nack(0);
 				break;
-			default:
-				ret_val = EXIT_FAILURE;
-		}
-	}
+                        default:
+                                ret_val = EXIT_FAILURE;
+                }
+        }
 
 	if(channel)
 	{
@@ -203,36 +191,33 @@ void init_default_settings(void)
 {
 	set_log_file(stdout);
 	set_max_pin_attempts(P1_SIZE + P2_SIZE);
-	set_delay(DEFAULT_DELAY);
-	set_lock_delay(DEFAULT_LOCK_DELAY);
-	set_key_status(KEY1_WIP);
-	set_debug(INFO);
-	set_auto_channel_select(1);
-	set_timeout_is_nack(1);
+        set_delay(DEFAULT_DELAY);
+        set_lock_delay(DEFAULT_LOCK_DELAY);
+        set_debug(INFO);
+        set_auto_channel_select(1);
+        set_timeout_is_nack(1);
 	set_oo_send_nack(1);
-	set_wifi_band(BG_BAND);
-	set_p1_index(0);
-	set_p2_index(0);
+        set_wifi_band(BG_BAND);
 }
 
 /* Parses the recurring delay optarg */
 void parse_recurring_delay(char *arg)
 {
-	char *x = NULL, *y = NULL;
+        char *x = NULL, *y = NULL;
 
-	x = strdup(arg);
-	y = strchr(x, ':');
+        x = strdup(arg);
+        y = strchr(x, ':');
 
-	if(y)
-	{
-		memset(y, 0, 1);
-		y++;
+        if(y)
+        {
+                memset(y, 0, 1);
+                y++;
 
-		set_recurring_delay_count(atoi(x));
-		set_recurring_delay(atoi(y));
-	}
+                set_recurring_delay_count(atoi(x));
+                set_recurring_delay(atoi(y));
+        }
 
-	free(x);
+        free(x);
 }
 
 /* Parse the WPS pin to use into p1 and p2 */
