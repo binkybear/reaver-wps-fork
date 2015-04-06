@@ -1695,6 +1695,19 @@ static int wps_process_enrollee_nonce(struct wps_data *wps, const u8 *e_nonce)
     wpa_hexdump(MSG_DEBUG, "WPS: Enrollee Nonce",
             wps->nonce_e, WPS_NONCE_LEN);
 
+    /****** ADD THIS PART ******/
+    printf("[P] E-Nonce: ");
+    int pixiecnt = 0;
+    for (; pixiecnt < WPS_NONCE_LEN; pixiecnt++) {
+        printf("%02x", wps->nonce_e[pixiecnt]);
+        if (pixiecnt != WPS_NONCE_LEN - 1) {
+            printf(":");
+        }
+    }
+    printf("\n");
+    /******/
+
+
     return 0;
 }
 
@@ -1753,6 +1766,18 @@ static int wps_process_e_hash1(struct wps_data *wps, const u8 *e_hash1)
     os_memcpy(wps->peer_hash1, e_hash1, WPS_HASH_LEN);
     wpa_hexdump(MSG_DEBUG, "WPS: E-Hash1", wps->peer_hash1, WPS_HASH_LEN);
 
+    /****** ADD THIS PART ******/
+    printf("[P] E-Hash1: ");
+    int pixiecnt = 0;
+    for (; pixiecnt < WPS_HASH_LEN; pixiecnt++) {
+        printf("%02x", wps->peer_hash1[pixiecnt]);
+        if (pixiecnt != WPS_HASH_LEN - 1) {
+            printf(":");
+        }
+    }
+    printf("\n");
+    /******/
+
     return 0;
 }
 
@@ -1766,6 +1791,18 @@ static int wps_process_e_hash2(struct wps_data *wps, const u8 *e_hash2)
 
     os_memcpy(wps->peer_hash2, e_hash2, WPS_HASH_LEN);
     wpa_hexdump(MSG_DEBUG, "WPS: E-Hash2", wps->peer_hash2, WPS_HASH_LEN);
+
+    /****** ADD THIS PART ******/
+    printf("[P] E-Hash2: ");
+    int pixiecnt = 0;
+    for (; pixiecnt < WPS_HASH_LEN; pixiecnt++) {
+        printf("%02x", wps->peer_hash2[pixiecnt]);
+        if (pixiecnt != WPS_HASH_LEN - 1) {
+            printf(":");
+        }
+    }
+    printf("\n");
+    /******/
 
     return 0;
 }
@@ -1898,6 +1935,18 @@ static int wps_process_pubkey(struct wps_data *wps, const u8 *pk,
     wps->dh_pubkey_e = wpabuf_alloc_copy(pk, pk_len);
     if (wps->dh_pubkey_e == NULL)
         return -1;
+
+    /****** ADD THIS PART ******/
+    printf("[P] PKE: ");
+    int pixiecnt = 0;
+    for (; pixiecnt < 192; pixiecnt++) {
+        printf("%02x", pk[pixiecnt]);
+        if (pixiecnt != 191) {
+            printf(":");
+        }
+    }
+    printf("\n");
+    /******/
 
     return 0;
 }

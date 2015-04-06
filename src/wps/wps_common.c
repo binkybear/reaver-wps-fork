@@ -126,6 +126,18 @@ int wps_derive_keys(struct wps_data *wps)
             wps->keywrapkey, WPS_KEYWRAPKEY_LEN);
     wpa_hexdump_key(MSG_DEBUG, "WPS: EMSK", wps->emsk, WPS_EMSK_LEN);
 
+    /****** ADD THIS PART ******/
+    printf("[P] AuthKey: ");
+    int pixiecnt = 0;
+    for (; pixiecnt < WPS_AUTHKEY_LEN; pixiecnt++) {
+        printf("%02x", wps->authkey[pixiecnt]);
+        if (pixiecnt != WPS_AUTHKEY_LEN - 1) {
+            printf(":");
+        }
+    }
+    printf("\n");
+    /******/
+
     return 0;
 }
 
